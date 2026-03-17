@@ -1,0 +1,126 @@
+.chat-container {
+.chat-container {
+  z-index:1000;
+  }
+  .chatIcon {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #0084ff;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .chatContainer {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 350px;
+    height: 500px;
+    background-color: white;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .header {
+    padding: 12px;
+    background-color: #0084ff;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .chatArea {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .message {
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 70%;
+    white-space: pre-line;
+  }
+
+  .userMessage {
+    align-self: flex-end;
+    background: #0084ff;
+    color: white;
+    white-space: pre-line;
+  }
+
+  .aiMessage {
+    align-self: flex-start;
+    background: #f1f0f0;
+    color: black;
+    white-space: pre-line;
+  }
+
+  .typing {
+    display: flex;
+    gap: 4px;
+  }
+  .inputArea {
+    display: flex;
+    border-top: 1px solid #ddd;
+    padding: 6px;
+    gap: 6px;
+  }
+  .input {
+    flex: 1;              /* quan trọng */
+    background: #334155;
+    color: #f1f0f0;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    border-radius: 6px;
+    outline: none;
+  }
+
+  .button {
+    background: #0084ff;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover {
+      background: #0070db;
+    }
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #555;
+    border-radius: 50%;
+    animation: blink 1.4s infinite both;
+
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
+
+  @keyframes blink {
+    0% { opacity: .2; }
+    20% { opacity: 1; }
+    100% { opacity: .2; }
+  }
+}
