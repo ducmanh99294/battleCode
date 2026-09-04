@@ -1,75 +1,58 @@
-const mongoose = require('mongoose')
+// models/User.js
 
-const userSchema = new mongoose.Schema({
-  fullName: String,
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true
-  },
-  phone: {
-    type: String,
-    unique: true,
-  },
-  image: {
-    type: String,
-    default: 'https://img.freepik.com/free-vector/user-blue-gradient_78370-4692.jpg?semt=ais_hybrid&w=740&q=80'
-  },
-  dateOfBirth: Date,
-  password: {
-    type: String,
-    default: '$2b$10$B7YsNyJD5RNz9v/rZUSuO.ezgzYZRzvj/bDwY.EG.ejSrQlrdz2rm'
-  },
-  andress:{
-    type: String,
-  },
-  gender:{
-    type: String,
-    default: "male"
-  },
-  role: {
-    type: String,
-    enum: ["patient", "doctor", 'admin'],
-    default: 'patient'
-  },
-  
-  refreshToken: {
-    type: String
-  },
-  isBanned: {
-    type: Boolean,
-    default: false
-  },
-  
-  bannedAt: Date,
-  banReason: String,
+const mongoose = require("mongoose");
 
-  lastLogin: {
-    type: Date,
-    default: null
-  },
+const userSchema = new mongoose.Schema(
+  {
+    /*
+    | Account
+    */
 
-  elo: {
-    type: Number,
-    default: 1000
+    username: {
+      type: String,
+      required: [true, "Username is required"],
+      unique: true,
+      trim: true,
+      minlength: [3, "Username must be at least 3 characters"],
+      maxlength: [30, "Username must not exceed 30 characters"],
+    },
+
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        "Please provide a valid email",
+      ],
+    },
+
+    /*
+    | Authentication
+    */
+
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+      select: false,
+    },
+
+    /*
+    | Login Information
+    */
+
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
   },
 
-  rank: {
-    type: String,
-    default: "Bronze"
-  },
-
-  win: {
-    type: Number,
-    default: 0
-  },
-
-  lose: {
-    type: Number,
-    default: 0
+  {
+    timestamps: true,
   }
-}, { timestamps: true })
+);
 
-module.exports = mongoose.model('User', userSchema)
+module.exports = mongoose.model("User", userSchema);

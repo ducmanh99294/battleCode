@@ -1,69 +1,75 @@
-const express = require('express')
-const router = express.Router()
-const userCtrl = require("../controllers/userController");
-const auth = require("../middlewares/authMiddleware");
-const admin = require("../middlewares/adminMiddleware");
-const upload = require("../middlewares/upload");
-const passport = require("../controllers/passport");
-const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+// routes/authRoutes.js
 
-// Redirect sang Google
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+const express = require("express");
+
+const {
+  register,
+  login,
+  logout,
+  changePassword,
+  getMe,
+} = require("../controllers/authController");
+
+const authMiddleware = require("../middlewares/authMiddleware");
+
+const router = express.Router();
+
+/*
+| Public Routes
+*/
+
+/*
+ * POST /api/auth/register
+ * Đăng ký tài khoản
+ */
+router.post(
+  "/register",
+  register
 );
 
-// Callback từ Google
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { session: false }),
-  (req, res) => {
-    const accessToken = generateAccessToken(req.user);
-    const refreshToken = generateRefreshToken(req.user);
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "lax",
-    });
-
-    res.redirect("http://localhost:5173");
-  }
+/*
+ * POST /api/auth/login
+ * Đăng nhập
+ */
+router.post(
+  "/login",
+  login
 );
 
-router.get(
-  "/facebook",
-  passport.authenticate("facebook", { scope: ["email"] })
+/*
+ * POST /api/auth/logout
+ * Đăng xuất
+ *
+ * Không bắt buộc authMiddleware nếu
+ * logout chỉ đơn giản là xóa cookie.
+ */
+router.post(
+  "/logout",
+  logout
 );
 
+/*
+| Protected Routes
+*/
+
+/*
+ * GET /api/auth/me
+ * Lấy thông tin user hiện tại
+ */
 router.get(
-  "/facebook/callback",
-  passport.authenticate("facebook", { session: false }),
-  (req, res) => {
-    const accessToken = generateAccessToken(req.user);
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "lax",
-    });
-
-    res.redirect("http://localhost:5173");
-  }
+  "/me",
+  authMiddleware,
+  getMe
 );
 
-router.post("/", userCtrl.createGuest);
-router.post("/register", userCtrl.register);
-router.post("/login", userCtrl.login);
-router.post("/refresh-token", userCtrl.refreshToken);
-router.post("/logout", userCtrl.logout);
-router.get("/me", auth, userCtrl.getMe);
-router.put("/avatar", auth,  userCtrl.updateAvatar);
-router.put("/profile", auth, userCtrl.updateProfile);
-router.put("/change-password", auth, userCtrl.changePassword);
-router.delete("/users/:id", auth, admin, userCtrl.deleteUser);
-//admin
-router.put("/:id/ban", auth, admin, userCtrl.banUser);
-router.put("/:id/unban", auth, admin, userCtrl.unbanUser);
-router.put("/update/:userId", auth, admin, userCtrl.updateUser);
-router.get("/", auth, admin, userCtrl.getAllUsers);
+/*
+ * PUT /api/auth/change-password
+ * Đổi mật khẩu
+ */
+router.put(
+  "/change-password",
+  authMiddleware,
+  changePassword
+);
 
-module.exports = router
+module.exports = router;

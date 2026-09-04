@@ -1,33 +1,82 @@
-# Node modules
+# ================================
+# Dependencies
+# ================================
 node_modules/
 
-# Environment variables
+# ================================
+# Environment variables / Secrets
+# ================================
 .env
 .env.*
 !.env.example
 
+# ================================
 # Logs
-logs
+# ================================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Build folders
+# ================================
+# Runtime data
+# ================================
+*.pid
+*.seed
+*.pid.lock
+
+# ================================
+# Coverage
+# ================================
+coverage/
+.nyc_output/
+
+# ================================
+# Build / Distribution
+# ================================
 dist/
 build/
+out/
 
-# OS files
+# ================================
+# Cache
+# ================================
+.cache/
+.npm/
+.eslintcache
+.parcel-cache/
+
+# ================================
+# OS generated files
+# ================================
 .DS_Store
 Thumbs.db
 
-# IDE
+# ================================
+# IDE / Editor
+# ================================
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# Optional: coverage
-coverage/
+# ================================
+# Temporary files
+# ================================
+tmp/
+temp/
+*.tmp
 
-# Optional: cache
-.cache/
+# ================================
+# Optional local database files
+# ================================
+*.sqlite
+*.sqlite3
+*.db
+
+# ================================
+# Testing
+# ================================
+.nyc_output/
