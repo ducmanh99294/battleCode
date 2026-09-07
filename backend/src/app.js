@@ -14,7 +14,7 @@ const authRoutes = require("./routes/authRoutes");
 const playerRoutes = require("./routes/playerRoutes");
 const monsterRoutes = require("./routes/monsterRouter");
 const worldRoutes = require("./routes/worldRoutes");
-
+const spawnPointRoutes = require("./routes/spawnRoutes");
 /*
 | Managers
 */
@@ -26,8 +26,11 @@ const WorldManager = require("./game/WorldManager");
 const CombatManager = require("./game/CombatManager");
 const LootManager = require("./game/LootManager");
 const SocketManager = require("./game/SocketManager");
+const SpawnManager = require("./game/SpawnManager");
+
 
 const { setWorldManager } = require("./controllers/worldController");
+const { setSpawnManager } = require("./controllers/spawnController");
 
 /*
 | App Setup
@@ -56,27 +59,11 @@ app.use(express.json());
 */
 
 const playerManager = new PlayerManager();
-
 const zoneManager = new ZoneManager();
-
-const lootManager =
-  new LootManager({
-    io,
-    playerManager,
-  });
-  
-const monsterManager = new MonsterManager(
-  zoneManager,
-  lootManager
-);
-
-
-const combatManager =
-  new CombatManager({
-    playerManager,
-    monsterManager,
-  });
-
+const lootManager = new LootManager({io,playerManager,});
+const monsterManager = new MonsterManager(zoneManager,lootManager);
+const combatManager = new CombatManager({ playerManager, monsterManager});
+const spawnManager = new SpawnManager({ monsterManager, zoneManager });
 const worldManager = new WorldManager();
 
 /*
@@ -84,7 +71,6 @@ const worldManager = new WorldManager();
 */
 
 const socketManager = new SocketManager(io, {
-
   playerManager,
   zoneManager,
   monsterManager,
@@ -98,6 +84,7 @@ socketManager.initialize();
 lootManager.startCleanup();
 
 setWorldManager(worldManager);
+setSpawnManager(spawnManager);
 /*
 | REST Routes
 */
@@ -106,6 +93,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/monsters", monsterRoutes);
 app.use("/api/player", playerRoutes);
 app.use("/api/world", worldRoutes);
+app.use("/api/spawn-points", spawnPointRoutes);
 
 /*
 | Health Check
@@ -128,6 +116,8 @@ mongoose
     console.log("[DB] MongoDB connected");
 
     await worldManager.initialize();
+    await monsterManager.initialize();
+    await spawnManager.initialize();
 
     console.log("[World] World initialized");
 

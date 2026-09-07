@@ -107,6 +107,7 @@ class MonsterManager {
     zoneId,
     x = 0,
     y = 0,
+    spawnPointId = null
   }) {
     const template = this.templates.get(type);
 
@@ -176,6 +177,8 @@ class MonsterManager {
       // World
       zoneId,
 
+      spawnPointId,
+
       position: {
         x,
         y,
@@ -215,6 +218,14 @@ class MonsterManager {
     );
 
     return monster;
+  }
+
+  getSpawnPointMonsterCount(spawnPointId) {
+    let count = 0;
+    for (const m of this.monsters.values()) {
+      if (m.spawnPointId === spawnPointId && m.alive) count++;
+    }
+    return count;
   }
 
   // REMOVE MONSTER
@@ -333,7 +344,6 @@ class MonsterManager {
   }
 
   // MONSTER DEATH
-
   handleMonsterDeath(
     monster,
     killerId
@@ -344,7 +354,6 @@ class MonsterManager {
       );
 
     // CREATE LOOT
-
     if (
       this.lootManager &&
       drops.length > 0
@@ -367,7 +376,6 @@ class MonsterManager {
     }
 
     // MONSTER KILLED
-
     this.io
       .to(monster.zoneId)
       .emit(
@@ -384,69 +392,20 @@ class MonsterManager {
       );
 
     // DECREASE COUNT
-
     this.decrementZoneCount(
       monster.zoneId,
       monster.type
     );
 
     // RESPAWN
-
-    const respawnTime =
-      monster.respawnTime;
-
+      if (monster.spawnPointId) {
     setTimeout(() => {
-      this.respawnMonster(
-        monster
-      );
-    }, respawnTime * 1000);
+      this.spawnFromPoint(monster.spawnPointId);
+    }, monster.respawnTime ? monster.respawnTime * 1000 : 10000);
   }
-
-  // RESPAWN
-
-  respawnMonster(oldMonster) {
-    // Monster object may have been removed
-    // or template may have changed.
-
-    const template = this.templates.get(
-      oldMonster.type
-    );
-
-    if (!template) {
-      console.warn(
-        `[MonsterManager] Cannot respawn ${oldMonster.type}: template not found`
-      );
-
-      return;
-    }
-
-    // Check spawn zone
-
-    const zone = template.spawnZones?.find(
-      (spawnZone) =>
-        spawnZone.zoneId ===
-        oldMonster.zoneId
-    );
-
-    if (!zone) {
-      return;
-    }
-
-    // Spawn new monster
-
-    this.spawnMonster({
-      type: oldMonster.type,
-
-      zoneId: oldMonster.zoneId,
-
-      x: oldMonster.position.x,
-
-      y: oldMonster.position.y,
-    });
   }
 
   // CALCULATE DROPS
-
   calculateDrops(dropTable) {
     const drops = [];
 
@@ -483,7 +442,6 @@ class MonsterManager {
   }
 
   // UPDATE MONSTER POSITION
-
   updateMonsterPosition(
     monsterId,
     x,

@@ -17,18 +17,6 @@ const itemSchema = new mongoose.Schema(
       trim: true,
     },
 
-    rarity: {
-      type: String,
-      enum: [
-        "common",
-        "uncommon",
-        "rare",
-        "epic",
-        "legendary",
-      ],
-      default: "common",
-    },
-
     // Loại item
     type: {
       type: String,

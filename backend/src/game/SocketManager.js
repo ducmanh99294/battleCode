@@ -87,12 +87,12 @@ constructor(io, {
     socket.on("join_world", async (data, callback) => {
       try {
         const playerId = socket.userId;
-
         // | Load player từ DB
 
         const dbPlayer = await Player.findOne({
           userId: playerId,
         });
+        console.log("[DEBUG] dbPlayer.stats:", dbPlayer.stats);
 
         if (!dbPlayer) {
           return callback?.({

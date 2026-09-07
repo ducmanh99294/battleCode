@@ -30,32 +30,32 @@ const playerSchema = new mongoose.Schema(
     stats: {
       STR: {
         type: Number,
-        default: 10,
+        default: 1,
         min: 0,
       },
       VIT: {
         type: Number,
-        default: 10,
+        default: 1,
         min: 0,
       },
       AGI: {
         type: Number,
-        default: 10,
+        default: 1,
         min: 0,
       },
       INT: {
         type: Number,
-        default: 10,
+        default: 1,
         min: 0,
       },
       END: {
         type: Number,
-        default: 10,
+        default: 1,
         min: 0,
       },
       LUK: {
         type: Number,
-        default: 10,
+        default: 1,
         min: 0,
       },
     },
