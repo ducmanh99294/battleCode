@@ -154,7 +154,13 @@ const updateTime = async (req, res) => {
   }
 };
 
-
+const updateEnemySpawn = async (req, res) => {
+  // TODO: logic thật sau này
+  return res.status(501).json({
+    success: false,
+    message: "Not implemented",
+  });
+};
 
 /*
 | EXPORT
@@ -165,4 +171,5 @@ module.exports = {
   getWorld,
   updateWeather,
   updateTime,
+  updateEnemySpawn
 };

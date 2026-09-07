@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const Monster = require("../models/Monster");
 
 class MonsterManager {
-  constructor(io) {
+  constructor({io, lootManager}) {
     this.io = io;
 
     // Monster templates
@@ -14,8 +14,8 @@ class MonsterManager {
     //   damage: 10,
     //   ...
     // }
-    //
-    this.lootManager =lootManager;
+
+    this.lootManager = lootManager;
 
     this.templates = new Map();
 

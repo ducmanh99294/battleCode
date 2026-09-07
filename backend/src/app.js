@@ -12,6 +12,8 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
 const playerRoutes = require("./routes/playerRoutes");
+const monsterRoutes = require("./routes/monsterRouter");
+const worldRoutes = require("./routes/worldRoutes");
 
 /*
 | Managers
@@ -24,7 +26,8 @@ const WorldManager = require("./game/WorldManager");
 const CombatManager = require("./game/CombatManager");
 const LootManager = require("./game/LootManager");
 const SocketManager = require("./game/SocketManager");
-const monsterRoutes = require("./routes/monsterRoutes");
+
+const { setWorldManager } = require("./controllers/worldController");
 
 /*
 | App Setup
@@ -73,6 +76,7 @@ const combatManager =
     playerManager,
     monsterManager,
   });
+
 const worldManager = new WorldManager();
 
 /*
@@ -92,6 +96,8 @@ const socketManager = new SocketManager(io, {
 socketManager.initialize();
 
 lootManager.startCleanup();
+
+setWorldManager(worldManager);
 /*
 | REST Routes
 */
@@ -99,6 +105,7 @@ lootManager.startCleanup();
 app.use("/api/auth", authRoutes);
 app.use("/api/monsters", monsterRoutes);
 app.use("/api/player", playerRoutes);
+app.use("/api/world", worldRoutes);
 
 /*
 | Health Check
@@ -119,17 +126,6 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("[DB] MongoDB connected");
-
-    /*
-    | Initialize World
-    |
-    | WorldManager sẽ:
-    | 1. Load World từ MongoDB
-    | 2. Nếu chưa có → tạo World mặc định
-    | 3. Load World vào RAM
-    | 4. Start World Loop
-    |
-    */
 
     await worldManager.initialize();
 

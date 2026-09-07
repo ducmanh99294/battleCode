@@ -469,7 +469,7 @@ constructor(io, {
   }
 
 //   | Handle Disconnect
-  _handleDisconnect(socket) {
+  _handleDisconnect = async (socket) => {
     const playerId = socket.userId;
 
     const player =
@@ -484,6 +484,7 @@ constructor(io, {
       );
 
     //   | Xóa khỏi ZoneManager
+      await this.playerManager.savePlayer(playerId);
 
       if (player.zoneId) {
         this.zoneManager.removePlayerFromZone(
@@ -559,7 +560,5 @@ constructor(io, {
 }
 
 }
-
-
 
 module.exports = SocketManager;

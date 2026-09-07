@@ -7,7 +7,7 @@ const {
   updateEnemySpawn,
 } = require("../controllers/worldController");
 
-const authMiddleware = require("../middleware/authMiddleware");
+const authMiddleware = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 

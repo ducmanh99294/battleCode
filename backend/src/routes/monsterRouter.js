@@ -8,8 +8,8 @@ const {
   deleteMonster,
 } = require("../controllers/monsterController");
 
-const authMiddleware = require("../middleware/authMiddleware");
-const adminMiddleware = require("../middleware/adminMiddleware");
+const authMiddleware = require("../middlewares/authMiddleware");
+const adminMiddleware = require("../middlewares/adminMiddleware");
 
 const router = express.Router();
 

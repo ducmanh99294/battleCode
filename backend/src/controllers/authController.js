@@ -1,5 +1,6 @@
 // controllers/authController.js
-
+const jwt = require("jsonwebtoken");
+const Player = require("../models/Player");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 
@@ -91,7 +92,18 @@ exports.register = async (req, res) => {
     | Response
     */
 
+    await Player.create({ userId: user._id });
+
+    const token = jwt.sign(
+      { userId: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     return res.status(201).json({
+      token,
+      playerId: user._id,
+      username: user.username,
       message:
         "Register successfully",
 
@@ -195,6 +207,11 @@ exports.login = async (req, res) => {
       });
     }
 
+    const token = jwt.sign(
+      { userId: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
     /*
     | Update Last Login
     */
@@ -209,6 +226,9 @@ exports.login = async (req, res) => {
     */
 
     return res.status(200).json({
+      token,
+      playerId: user._id,
+      username: user.username,
       message:
         "Login successfully",
 
