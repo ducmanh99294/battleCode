@@ -87,74 +87,32 @@ constructor(io, {
     socket.on("join_world", async (data, callback) => {
       try {
         const playerId = socket.userId;
-        // | Load player từ DB
+        const dbPlayer = await Player.findOne({ userId: playerId });
+        if (!dbPlayer) return callback?.({ success: false, reason: "PLAYER_NOT_FOUND" });
 
-        const dbPlayer = await Player.findOne({
-          userId: playerId,
-        });
-        console.log("[DEBUG] dbPlayer.stats:", dbPlayer.stats);
+        const scene = data?.scene || dbPlayer.position?.scene || "MainMap";
+        const x = data?.x ?? dbPlayer.position?.x ?? 0;
+        const y = data?.y ?? dbPlayer.position?.y ?? 0;
 
-        if (!dbPlayer) {
-          return callback?.({
-            success: false,
-            reason: "PLAYER_NOT_FOUND",
-          });
+        const zone = scene === "MainMap"
+          ? this.zoneManager.getOrCreateMainMap(playerId)
+          : this.zoneManager.getOrCreateZone({ scene, maxPlayers: 50 });
+          
+        if (zone.scene !== "MainMap" && zone.monsters.size === 0) {
+          this.monsterManager.spawnMonstersForZone(zone);
         }
+        const player = this.playerManager.addPlayer({
+          playerId, socketId: socket.id, username: socket.username,
+          scene, zoneId: zone.zoneId, x, y,
+        });
 
-        const scene =
-          data?.scene ||
-          dbPlayer.position?.scene ||
-          "Village";
-
-        const x =
-          data?.x ??
-          dbPlayer.position?.x ??
-          0;
-
-        const y =
-          data?.y ??
-          dbPlayer.position?.y ??
-          0;
-
-        // | Lấy hoặc tạo zone cho scene
-
-        const zone =
-          this.zoneManager.getOrCreateZone({
-            scene,
-            maxPlayers: 50,
-          });
-
-        // | Thêm player vào PlayerManager
-
-        const player =
-          this.playerManager.addPlayer({
-            playerId,
-            socketId: socket.id,
-            username: socket.username,
-            scene,
-            zoneId: zone.zoneId,
-            x,
-            y,
-          });
-
-        // | Thêm player vào Zone
-
-        this.zoneManager.addPlayerToZone(
-          playerId,
-          zone.zoneId
-        );
-
-        // | Join socket room theo zone
-
+        this.zoneManager.addPlayerToZone(playerId, zone.zoneId);
         socket.join(zone.zoneId);
-
-        // | Gửi world state hiện tại cho player mới
 
         const worldState =
           this.worldManager.getWorld();
 
         socket.emit("world_state", worldState);
-
         // | Gửi danh sách player cùng zone
 
         const playersInZone =
@@ -166,7 +124,6 @@ constructor(io, {
           zoneId: zone.zoneId,
           players: playersInZone,
         });
-
         // | Gửi danh sách monster trong zone
 
         const monstersInZone =
@@ -178,7 +135,6 @@ constructor(io, {
           zoneId: zone.zoneId,
           monsters: monstersInZone,
         });
-
         // | Thông báo player khác trong zone
 
         socket.to(zone.zoneId).emit(
@@ -186,26 +142,58 @@ constructor(io, {
           this.playerManager.getPublicPlayerData(playerId)
         );
 
+
         console.log(
           `[Socket] ${socket.username} joined zone: ${zone.zoneId}`
         );
-
-        callback?.({
-          success: true,
-          player,
-          zoneId: zone.zoneId,
-          worldState,
-        });
+        callback?.({ success: true, player, zoneId: zone.zoneId, worldState: this.worldManager.getWorld() });
       } catch (err) {
         console.error("[Socket] join_world error:", err);
         callback?.({ success: false, reason: err.message });
       }
     });
 
+    // | join_world_by_code
+    socket.on("join_world_by_code", async (data, callback) => {
+      try {
+        const code = data?.code?.trim().toUpperCase();
+        if (!code) return callback?.({ success: false, reason: "CODE_REQUIRED" });
+
+        const zone = this.zoneManager.getZoneByCode(code);
+        if (!zone) return callback?.({ success: false, reason: "INVALID_CODE" });
+
+        const playerId = socket.userId;
+        if (zone.ownerId === playerId)
+          return callback?.({ success: false, reason: "CANNOT_JOIN_OWN_WORLD" });
+
+        const result = this.zoneManager.addPlayerToZone(playerId, zone.zoneId);
+        if (!result.success) return callback?.(result);
+
+        zone.guestIds.add(playerId);
+
+        const player = this.playerManager.getPlayer(playerId);
+        if (player?.zoneId) {
+          socket.to(player.zoneId).emit("player_left", { playerId });
+          socket.leave(player.zoneId);
+          this.zoneManager.removePlayerFromZone(playerId, player.zoneId);
+        }
+
+        this.playerManager.updateScene(playerId, zone.scene, zone.zoneId);
+        socket.join(zone.zoneId);
+        socket.to(zone.zoneId).emit("player_joined", this.playerManager.getPublicPlayerData(playerId));
+
+        socket.emit("zone_players", {
+          zoneId: zone.zoneId,
+          players: this.playerManager.getPublicPlayersInZone(zone.zoneId),
+        });
+
+        callback?.({ success: true, zoneId: zone.zoneId, scene: zone.scene, isGuest: true });
+      } catch (err) {
+        callback?.({ success: false, reason: "JOIN_FAILED" });
+      }
+    });
+
     // | player_move
-    // |
-    // | Client gửi vị trí mới.
-    // | Server update RAM + broadcast cho zone.
 
     socket.on("player_move", (data) => {
       const playerId = socket.userId;
@@ -260,9 +248,16 @@ constructor(io, {
 
         const oldZoneId = player.zoneId;
         const newScene  = data.scene;
+        
+        const zone = scene === "MainMap"
+          ? this.zoneManager.getOrCreateMainMap(playerId)
+          : this.zoneManager.getOrCreateZone({ scene, maxPlayers: 50 });
 
+          // Nếu zone vừa tạo mới (chưa có quái) → spawn
+          if (zone.scene !== "MainMap" && zone.monsters.size === 0) {
+            this.monsterManager.spawnMonstersForZone(zone);
+          }
         // | Lấy hoặc tạo zone mới
-
         const newZone =
           this.zoneManager.getOrCreateZone({
             scene: newScene,

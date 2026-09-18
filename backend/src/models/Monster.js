@@ -32,11 +32,7 @@ const dropTableSchema = new mongoose.Schema(
 
 const spawnZoneSchema = new mongoose.Schema(
   {
-    zoneId: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    scene: { type: String, required: true, trim: true },
 
     maxCount: {
       type: Number,

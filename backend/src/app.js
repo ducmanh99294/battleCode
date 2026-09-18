@@ -61,7 +61,7 @@ app.use(express.json());
 const playerManager = new PlayerManager();
 const zoneManager = new ZoneManager();
 const lootManager = new LootManager({io,playerManager,});
-const monsterManager = new MonsterManager(zoneManager,lootManager);
+const monsterManager = new MonsterManager({ io, zoneManager, lootManager });
 const combatManager = new CombatManager({ playerManager, monsterManager});
 const spawnManager = new SpawnManager({ monsterManager, zoneManager });
 const worldManager = new WorldManager();

@@ -2,35 +2,13 @@ const crypto = require("crypto");
 const Monster = require("../models/Monster");
 
 class MonsterManager {
-  constructor({io, lootManager}) {
+  constructor({ io, zoneManager, lootManager }) {
     this.io = io;
-
-    // Monster templates
-    //
-    // type -> MongoDB Monster document
-    //
-    // slime -> {
-    //   maxHp: 300,
-    //   damage: 10,
-    //   ...
-    // }
-
+    this.zoneManager = zoneManager;
     this.lootManager = lootManager;
-
     this.templates = new Map();
-
-    // Runtime monsters
-    //
-    // monsterId -> runtime monster
-    //
     this.monsters = new Map();
-
-    // Spawn counters
-    //
-    // zoneId -> Map<monsterType, count>
-    //
     this.zoneCounts = new Map();
-
     this.initialized = false;
   }
 
@@ -136,8 +114,9 @@ class MonsterManager {
       zoneId,
       type
     );
+    const spawnRule = template.spawnZones?.find(sz => sz.scene === this.zoneManager?.getZone(zoneId)?.scene);
 
-    if (currentCount >= zone.maxCount) {
+    if (spawnRule && currentCount >= spawnRule.maxCount) {
       return null;
     }
 
@@ -212,7 +191,7 @@ class MonsterManager {
     );
 
     // Broadcast spawn
-
+this.zoneManager?.addMonsterToZone(monsterId, zoneId);
     this.broadcastMonsterSpawn(
       monster
     );
@@ -745,24 +724,40 @@ class MonsterManager {
   }
 
   getPublicMonstersInZone(zoneId) {
-  const monsters = this.getMonstersInZone(zoneId);
+    const monsters = this.getMonstersInZone(zoneId);
 
-  return monsters.map((monster) => ({
-    monsterId: monster.monsterId,
-    type: monster.type,
-    displayName: monster.displayName,
+    return monsters.map((monster) => ({
+      monsterId: monster.monsterId,
+      type: monster.type,
+      displayName: monster.displayName,
 
-    hp: monster.hp,
-    maxHp: monster.maxHp,
+      hp: monster.hp,
+      maxHp: monster.maxHp,
 
-    position: {
-      x: monster.position.x,
-      y: monster.position.y,
-    },
+      position: {
+        x: monster.position.x,
+        y: monster.position.y,
+      },
 
-    zoneId: monster.zoneId,
-  }));
-}
+      zoneId: monster.zoneId,
+    }));
+  }
+
+  spawnMonstersForZone(zone) {
+    if (zone.scene === "MainMap") return; // MainMap không có quái
+
+    for (const [type, template] of this.templates) {
+      const spawnRule = template.spawnZones?.find(sz => sz.scene === zone.scene);
+      if (!spawnRule) continue;
+
+      for (let i = 0; i < spawnRule.maxCount; i++) {
+        const x = Math.random() * 20 - 10; // TODO: thay bằng vùng spawn thật của map
+        const y = Math.random() * 20 - 10;
+
+        this.spawnMonster({ type, zoneId: zone.zoneId, x, y });
+      }
+    }
+  }
 }
 
 

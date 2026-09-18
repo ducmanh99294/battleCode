@@ -1,48 +1,87 @@
 class ZoneManager {
   constructor() {
-    /*
-    | Zones
-    |
-    | zoneId => zone
-    |
-    */
-
     this.zones = new Map();
+    this.codeToZone = new Map();
   }
 
   /*
   | Create Zone
   */
 
-  createZone({
-    zoneId,
-    scene,
-    maxPlayers = 50,
-  }) {
-    if (this.zones.has(zoneId)) {
-      return this.zones.get(zoneId);
-    }
+  createZone({ zoneId, scene, ownerId = null, maxPlayers = 50 }) {
+    if (this.zones.has(zoneId)) return this.zones.get(zoneId);
 
     const zone = {
       zoneId,
-
       scene,
-
       maxPlayers,
-
+      ownerId,          // null nếu là zone MMO chung
+      inviteCode: null,
+      guestIds: new Set(),
       players: new Set(),
-
       monsters: new Set(),
-
       createdAt: Date.now(),
     };
 
-    this.zones.set(
-      zoneId,
-      zone
-    );
+    this.zones.set(zoneId, zone);
+    return zone;
+  }
+
+  // === MAIN MAP — riêng theo owner ===
+
+  getOrCreateMainMap(playerId) {
+    const zoneId = `${playerId}_MainMap`;
+    let zone = this.zones.get(zoneId);
+
+    if (!zone) {
+      zone = this.createZone({
+        zoneId,
+        scene: "MainMap",
+        ownerId: playerId,
+        maxPlayers: 4, // giới hạn khách vào MainMap riêng, tùy bạn chỉnh
+      });
+      zone.inviteCode = this.generateCode();
+      this.codeToZone.set(zone.inviteCode, zoneId);
+    }
 
     return zone;
+  }
+
+  generateCode() {
+    let code;
+    do {
+      code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    } while (this.codeToZone.has(code));
+    return code;
+  }
+
+  getZoneByCode(code) {
+    const zoneId = this.codeToZone.get(code);
+    return zoneId ? this.getZone(zoneId) : null;
+  }
+
+  // === MMO CHUNG — giữ nguyên logic cũ ===
+
+  findAvailableZone(scene) {
+    for (const zone of this.zones.values()) {
+      if (zone.scene === scene && !zone.ownerId && zone.players.size < zone.maxPlayers)
+        return zone;
+    }
+    return null;
+  }
+
+  getOrCreateZone({ scene, maxPlayers = 50 }) {
+    const availableZone = this.findAvailableZone(scene);
+    if (availableZone) return availableZone;
+
+    let index = 1;
+    while (this.zones.has(`${scene}_${index}`)) index++;
+
+    return this.createZone({
+      zoneId: `${scene}_${index}`,
+      scene,
+      maxPlayers,
+    });
   }
 
   /*
