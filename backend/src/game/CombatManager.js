@@ -1,3 +1,9 @@
+const ATTACKS = {
+  basic_attack: { multiplier: 1,   stat: "STR", cooldown: 300, range: null },
+  power_slash:  { multiplier: 1.5, stat: "STR", cooldown: 300, range: null },
+  bow_shot:     { multiplier: 1.2, stat: "AGI", cooldown: 400, range: 12 }, // chỉnh theo ý bạn
+};
+
 class CombatManager {
   constructor({
     playerManager,
@@ -15,6 +21,17 @@ class CombatManager {
     monsterId,
     attackId = "basic_attack",
   }) {
+    
+    const attack = ATTACKS[attackId];
+    if (!attack) return { success: false, reason: "INVALID_ATTACK" };
+
+    // thay đoạn check distance
+    const maxRange = attack.range ?? monster.attackRange + 1; // melee giữ nguyên hành vi cũ
+    if (distance > maxRange) return { success: false, reason: "OUT_OF_RANGE" };
+
+    if (!this.canAttack(playerId, attackId, attack.cooldown))
+      return { success: false, reason: "ATTACK_COOLDOWN" };
+
     // 1. CHECK PLAYER
 
     const player =
@@ -116,6 +133,7 @@ class CombatManager {
       };
     }
 
+
     // 9. RETURN RESULT
 
     return {
@@ -150,35 +168,10 @@ class CombatManager {
    * buff
    * armor penetration
    */
-  calculateDamage(
-    player,
-    attackId
-  ) {
-    const str =
-      Number(player.stats?.STR) || 1;
-
-    let damage = str;
-
-    // Basic attack
-    if (attackId === "basic_attack") {
-      damage = str;
-    }
-
-    // Ví dụ skill
-    else if (attackId === "power_slash") {
-      damage = str * 1.5;
-    }
-
-    else {
-      return 0;
-    }
-
-    return Math.max(
-      1,
-      Math.floor(damage)
-    );
+  calculateDamage(player, attack) {
+    const base = Number(player.stats?.[attack.stat]) || 1;
+    return Math.max(1, Math.floor(base * attack.multiplier));
   }
-
   /**
    * Distance giữa player và monster
    */
@@ -210,28 +203,9 @@ class CombatManager {
   /**
    * Attack cooldown
    */
-  canAttack(
-    playerId,
-    attackId
-  ) {
-    const key =
-      `${playerId}:${attackId}`;
-
-    const lastAttack =
-      this.attackCooldowns.get(key);
-
-    if (!lastAttack) {
-      return true;
-    }
-
-    const now = Date.now();
-
-    const cooldown =
-      300; // 0.3 second
-
-    return (
-      now - lastAttack >= cooldown
-    );
+  canAttack(playerId, attackId, cooldown = 300) {
+    const last = this.attackCooldowns.get(`${playerId}:${attackId}`);
+    return !last || Date.now() - last >= cooldown;
   }
 
   markAttack(

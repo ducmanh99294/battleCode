@@ -235,101 +235,42 @@ constructor(io, {
     socket.on("scene_changed", async (data, callback) => {
       try {
         const playerId = socket.userId;
-
-        const player =
-          this.playerManager.getPlayer(playerId);
-
-        if (!player) {
-          return callback?.({
-            success: false,
-            reason: "PLAYER_NOT_FOUND",
-          });
-        }
+        const player = this.playerManager.getPlayer(playerId);
+        if (!player) return callback?.({ success: false, reason: "PLAYER_NOT_FOUND" });
 
         const oldZoneId = player.zoneId;
         const newScene  = data.scene;
-        
-        const zone = scene === "MainMap"
+
+        const newZone = newScene === "MainMap"
           ? this.zoneManager.getOrCreateMainMap(playerId)
-          : this.zoneManager.getOrCreateZone({ scene, maxPlayers: 50 });
+          : this.zoneManager.getOrCreateZone({ scene: newScene, maxPlayers: 50 });
 
-          // Nếu zone vừa tạo mới (chưa có quái) → spawn
-          if (zone.scene !== "MainMap" && zone.monsters.size === 0) {
-            this.monsterManager.spawnMonstersForZone(zone);
-          }
-        // | Lấy hoặc tạo zone mới
-        const newZone =
-          this.zoneManager.getOrCreateZone({
-            scene: newScene,
-            maxPlayers: 50,
-          });
+        if (newZone.scene !== "MainMap" && newZone.monsters.size === 0) {
+          this.monsterManager.spawnMonstersForZone(newZone);
+        }
 
-        // | Thông báo zone cũ player đã rời
-
-        socket.to(oldZoneId).emit(
-          "player_left",
-          { playerId }
-        );
-
-        // | Rời socket room cũ
-
+        socket.to(oldZoneId).emit("player_left", { playerId });
         socket.leave(oldZoneId);
-
-        // | Move player sang zone mới
-
-        this.zoneManager.movePlayer(
-          playerId,
-          oldZoneId,
-          newZone.zoneId
-        );
-
-        this.playerManager.updateScene(
-          playerId,
-          newScene,
-          newZone.zoneId
-        );
-
-        // | Join socket room mới
-
+        this.zoneManager.movePlayer(playerId, oldZoneId, newZone.zoneId);
+        this.playerManager.updateScene(playerId, newScene, newZone.zoneId);
         socket.join(newZone.zoneId);
 
-        // | Thông báo zone mới có player vào
-
-        socket.to(newZone.zoneId).emit(
-          "player_joined",
-          this.playerManager.getPublicPlayerData(playerId)
-        );
-
-        // | Gửi danh sách player + monster trong zone mới
-
+        socket.to(newZone.zoneId).emit("player_joined", this.playerManager.getPublicPlayerData(playerId));
         socket.emit("zone_players", {
           zoneId: newZone.zoneId,
-          players: this.playerManager.getPublicPlayersInZone(
-            newZone.zoneId
-          ),
+          players: this.playerManager.getPublicPlayersInZone(newZone.zoneId),
         });
-
         socket.emit("zone_monsters", {
           zoneId: newZone.zoneId,
-          monsters: this.monsterManager.getPublicMonstersInZone(
-            newZone.zoneId
-          ),
+          monsters: this.monsterManager.getPublicMonstersInZone(newZone.zoneId),
         });
 
-        console.log(
-          `[Socket] ${socket.username} moved to zone: ${newZone.zoneId}`
-        );
-
-        callback?.({
-          success: true,
-          zoneId: newZone.zoneId,
-        });
+        callback?.({ success: true, zoneId: newZone.zoneId });
       } catch (err) {
         console.error("[Socket] scene_changed error:", err);
         callback?.({ success: false, reason: err.message });
       }
     });
-
     // | monster_attack
     // |
     // | Client báo player tấn công monster.
