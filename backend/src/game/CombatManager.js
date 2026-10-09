@@ -25,10 +25,6 @@ class CombatManager {
     const attack = ATTACKS[attackId];
     if (!attack) return { success: false, reason: "INVALID_ATTACK" };
 
-    // thay đoạn check distance
-    const maxRange = attack.range ?? monster.attackRange + 1; // melee giữ nguyên hành vi cũ
-    if (distance > maxRange) return { success: false, reason: "OUT_OF_RANGE" };
-
     if (!this.canAttack(playerId, attackId, attack.cooldown))
       return { success: false, reason: "ATTACK_COOLDOWN" };
 
@@ -79,7 +75,11 @@ class CombatManager {
       monster.position
     );
 
-    if (distance > monster.attackRange + 1) {
+    // Server tự check khoảng cách: vũ khí tầm xa (bow) dùng range riêng,
+    // cận chiến dùng attackRange của quái + 1. Client không thể đánh xa.
+    const maxRange = attack.range ?? monster.attackRange + 1;
+
+    if (distance > maxRange) {
       return {
         success: false,
         reason: "OUT_OF_RANGE",
@@ -156,21 +156,43 @@ class CombatManager {
   }
 
   /**
-   * Calculate player damage
+   * Calculate player damage — SERVER-AUTHORITATIVE.
    *
-   * Đây chỉ là công thức cơ bản.
-   * Sau này có thể thêm:
-   *
-   * STR
-   * weapon
-   * skill
-   * critical
-   * buff
-   * armor penetration
+   * Client chỉ gửi attackId. Mọi chỉ số (base stats từ DB + đồ đang mặc
+   * + thiên phú) đều do server tự cộng. Client không thể tự buff damage.
    */
-  calculateDamage(player, attack) {
-    const base = Number(player.stats?.[attack.stat]) || 1;
-    return Math.max(1, Math.floor(base * attack.multiplier));
+  calculateDamage(player, attackId) {
+    const attack = ATTACKS[attackId];
+    if (!attack) return 0;
+
+    const eff = this.getEffectiveStats(player);
+    const statValue = Number(eff[attack.stat]) || 1;
+    const flatAttack = Number(eff.attack) || 0;
+
+    return Math.max(1, Math.floor(statValue * attack.multiplier) + flatAttack);
+  }
+
+  /**
+   * Chỉ số hiệu dụng = base (DB) + equipment (DB, server tự resolve)
+   * + talent (DB, server tự roll). Không có gì lấy từ client.
+   */
+  getEffectiveStats(player) {
+    const { getTalent } = require("./Talents");
+    const base = player.stats || {};
+    const eq = player.equipmentStats || {};
+    const talentBonus = getTalent(player.talentId)?.bonus || {};
+
+    const out = {};
+    for (const k of [
+      "STR", "VIT", "AGI", "INT", "END", "LUK",
+      "attack", "defense", "maxHealth", "maxMana",
+    ]) {
+      out[k] =
+        (Number(base[k]) || 0) +
+        (Number(eq[k]) || 0) +
+        (Number(talentBonus[k]) || 0);
+    }
+    return out;
   }
   /**
    * Distance giữa player và monster

@@ -12,6 +12,7 @@ const {
   useItem,
   equipItem,
   unequipItem,
+  rollTalent,
   learnSkill,
   acceptQuest,
   completeQuest,
@@ -65,6 +66,13 @@ router.post("/inventory/equip", equipItem);
 // Unequip item
 // POST /player/inventory/unequip
 router.post("/inventory/unequip", unequipItem);
+
+
+//----------------------------| Talent
+
+// Roll thiên phú (server roll, 1 lần duy nhất)
+// POST /player/talent/roll
+router.post("/talent/roll", rollTalent);
 
 
 //---------------------------- Skills

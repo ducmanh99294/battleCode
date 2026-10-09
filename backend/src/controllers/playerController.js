@@ -22,6 +22,17 @@ const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
 };
 
+// Đồng bộ runtime player (PlayerManager, memory) sau khi DB đổi.
+// Không throw — DB đã lưu đúng, sync chỉ để online player cập nhật ngay.
+const syncRuntimePlayer = async (req, userId) => {
+  try {
+    const pm = req.app.get("playerManager");
+    if (pm) await pm.refreshEquipmentByUserId(userId);
+  } catch (e) {
+    console.error("syncRuntimePlayer error:", e.message);
+  }
+};
+
 
 /*
 |--------------------------------------------------------------------------
@@ -546,6 +557,10 @@ const equipItem = async (req, res) => {
 
     await player.save();
 
+    // Đồng bộ runtime player đang online để damage tính lại ngay,
+    // không phải chờ relog (chống lệch chỉ số giữa DB và memory).
+    await syncRuntimePlayer(req, userId);
+
     return res.status(200).json({
       success: true,
       message: "Item equipped successfully",
@@ -607,6 +622,8 @@ const unequipItem = async (req, res) => {
     player.equippedItems[slot] = null;
 
     await player.save();
+
+    await syncRuntimePlayer(req, userId);
 
     return res.status(200).json({
       success: true,
@@ -973,6 +990,63 @@ const completeQuest = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| ROLL TALENT
+|--------------------------------------------------------------------------
+| POST /player/talent/roll
+|
+| Thiên phú do SERVER roll (weighted random), lưu vào DB.
+| Mỗi player chỉ roll 1 lần duy nhất. Client chỉ hiển thị kết quả,
+| không bao giờ tự quyết định hay tự cộng chỉ số (chống hack).
+|--------------------------------------------------------------------------
+*/
+
+const { rollTalentId, getTalent } = require("../game/Talents");
+
+const rollTalent = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const player = await getPlayerByUserId(userId);
+
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        message: "Player not found",
+      });
+    }
+
+    // Đã roll rồi → trả về talent cũ, không cho roll lại
+    if (player.talentId) {
+      return res.status(200).json({
+        success: true,
+        alreadyRolled: true,
+        talent: getTalent(player.talentId),
+      });
+    }
+
+    const talentId = rollTalentId();
+    player.talentId = talentId;
+    await player.save();
+
+    await syncRuntimePlayer(req, userId);
+
+    return res.status(200).json({
+      success: true,
+      alreadyRolled: false,
+      talent: getTalent(talentId),
+    });
+  } catch (error) {
+    console.error("rollTalent error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
 module.exports = {
   getPlayer,
   savePlayer,
@@ -981,6 +1055,7 @@ module.exports = {
   useItem,
   equipItem,
   unequipItem,
+  rollTalent,
   learnSkill,
   acceptQuest,
   completeQuest,

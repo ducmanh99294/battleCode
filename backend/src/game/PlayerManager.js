@@ -1,4 +1,5 @@
 const Player = require("../models/Player");
+const Item = require("../models/Item");
 
 class PlayerManager {
   constructor() {
@@ -159,6 +160,15 @@ class PlayerManager {
       attributePoints:
         dbPlayer.attributePoints ?? 0,
 
+      // Talent — chỉ server được roll và lưu, client không tự đặt
+
+      talentId: dbPlayer.talentId ?? null,
+
+      // Equipment stats — server tự resolve từ Item DB sau khi addPlayer
+      // (xem resolveEquipmentStats). Không bao giờ tin số client gửi.
+
+      equipmentStats: {},
+
       // Runtime Status
 
       isOnline: true,
@@ -263,6 +273,62 @@ class PlayerManager {
     player.lastUpdate = Date.now();
 
     return player;
+  }
+
+  // Resolve Equipment Stats
+  //
+  // Đọc Item thật từ DB theo equippedItems của player, cộng dồn stats
+  // vào player.equipmentStats. CombatManager dùng số này để tính damage.
+  // Gọi sau addPlayer (join_world) và sau mỗi lần equip/unequip.
+
+  async resolveEquipmentStats(playerId) {
+    const player = this.getPlayer(playerId);
+    if (!player) return null;
+
+    const ids = Object.values(player.equippedItems || {}).filter(Boolean);
+
+    const stats = {};
+    if (ids.length > 0) {
+      const items = await Item.find({ _id: { $in: ids } }).lean();
+      for (const item of items) {
+        const s = item.stats || {};
+        for (const key of Object.keys(s)) {
+          stats[key] = (stats[key] || 0) + (Number(s[key]) || 0);
+        }
+      }
+    }
+
+    player.equipmentStats = stats;
+    player.lastUpdate = Date.now();
+    return stats;
+  }
+
+  // Refresh Equipment By UserId
+  //
+  // Dùng sau khi equip/unequip/roll talent qua REST API: đọc lại DB
+  // rồi resolve lại stats cho runtime player đang online.
+  // Runtime key = userId (join_world dùng socket.userId làm playerId).
+
+  async refreshEquipmentByUserId(userId) {
+    const player = this.getPlayer(userId);
+    if (!player) return null;
+
+    const dbPlayer = await Player.findOne({ userId }).lean();
+    if (dbPlayer) {
+      if (dbPlayer.equippedItems) {
+        player.equippedItems = {
+          weapon: dbPlayer.equippedItems.weapon ?? null,
+          armor: dbPlayer.equippedItems.armor ?? null,
+          helmet: dbPlayer.equippedItems.helmet ?? null,
+          ring: dbPlayer.equippedItems.ring ?? null,
+        };
+      }
+      if (dbPlayer.talentId !== undefined) {
+        player.talentId = dbPlayer.talentId ?? null;
+      }
+    }
+
+    return this.resolveEquipmentStats(player.playerId);
   }
 
   // Get All Players

@@ -2,10 +2,11 @@ const crypto = require("crypto");
 const Monster = require("../models/Monster");
 
 class MonsterManager {
-  constructor({ io, zoneManager, lootManager }) {
+  constructor({ io, zoneManager, lootManager, playerManager }) {
     this.io = io;
     this.zoneManager = zoneManager;
     this.lootManager = lootManager;
+    this.playerManager = playerManager || null;
     this.templates = new Map();
     this.monsters = new Map();
     this.zoneCounts = new Map();
@@ -355,6 +356,15 @@ this.zoneManager?.addMonsterToZone(monsterId, zoneId);
     }
 
     // MONSTER KILLED
+    // expReward nhân với talent của killer (server tự tính, client không sửa được)
+    let expReward = monster.expReward;
+    try {
+      const { getTalent } = require("./Talents");
+      const killer = this.playerManager?.getPlayer(killerId);
+      const expMul = getTalent(killer?.talentId)?.bonus?.expMul;
+      if (expMul && expMul > 0) expReward = Math.floor(expReward * expMul);
+    } catch (e) { /* giữ nguyên expReward gốc */ }
+
     this.io
       .to(monster.zoneId)
       .emit(
@@ -365,8 +375,7 @@ this.zoneManager?.addMonsterToZone(monsterId, zoneId);
 
           killerId,
 
-          expReward:
-            monster.expReward,
+          expReward,
         }
       );
 

@@ -103,8 +103,12 @@ constructor(io, {
         }
         const player = this.playerManager.addPlayer({
           playerId, socketId: socket.id, username: socket.username,
-          scene, zoneId: zone.zoneId, x, y,
+          scene, zoneId: zone.zoneId, x, y, dbPlayer,
         });
+
+        // Stats/equipment/talent của runtime player PHẢI lấy từ DB,
+        // không tin bất kỳ số nào client gửi lên (chống hack chỉ số).
+        await this.playerManager.resolveEquipmentStats(playerId);
 
         this.zoneManager.addPlayerToZone(playerId, zone.zoneId);
         socket.join(zone.zoneId);

@@ -231,6 +231,13 @@ inventory: [
       min: 0,
     },
 
+    // Thiên phú — chỉ server được roll (POST /api/player/talent/roll),
+    // client không bao giờ tự đặt giá trị này.
+    talentId: {
+      type: String,
+      default: null,
+    },
+
     playtime: {
       type: Number,
       default: 0,
