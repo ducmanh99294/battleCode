@@ -383,6 +383,22 @@ constructor(io, {
       }
     });
 
+    // | puzzle_solved
+
+    socket.on("puzzle_solved", (data) => {
+      const player =
+        this.playerManager.getPlayer(socket.userId);
+
+      if (!player) return;
+
+    //   | Gửi cho cả zone (kể cả người gửi — client tự bỏ qua nếu đã mở)
+
+      this.io.to(player.zoneId).emit(
+        "puzzle_solved",
+        { puzzleId: data.puzzleId }
+      );
+    });
+
     // | chat_message
 
     socket.on("chat_message", (data) => {

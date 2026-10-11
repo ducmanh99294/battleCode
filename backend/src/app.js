@@ -12,6 +12,7 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
 const playerRoutes = require("./routes/playerRoutes");
+const dungeonRoutes = require("./routes/dungeonRoutes");
 const monsterRoutes = require("./routes/monsterRouter");
 const worldRoutes = require("./routes/worldRoutes");
 const spawnPointRoutes = require("./routes/spawnRoutes");
@@ -61,7 +62,7 @@ app.use(express.json());
 const playerManager = new PlayerManager();
 const zoneManager = new ZoneManager();
 const lootManager = new LootManager({io,playerManager,});
-const monsterManager = new MonsterManager({ io, zoneManager, lootManager });
+const monsterManager = new MonsterManager({ io, zoneManager, lootManager, playerManager });
 const combatManager = new CombatManager({ playerManager, monsterManager});
 const spawnManager = new SpawnManager({ monsterManager, zoneManager });
 const worldManager = new WorldManager();
@@ -83,6 +84,10 @@ socketManager.initialize();
 
 lootManager.startCleanup();
 
+// Cho controller truy cập PlayerManager để sync runtime sau equip/unequip/roll
+app.set("playerManager", playerManager);
+app.set("monsterManager", monsterManager);
+
 setWorldManager(worldManager);
 setSpawnManager(spawnManager);
 /*
@@ -92,6 +97,7 @@ setSpawnManager(spawnManager);
 app.use("/api/auth", authRoutes);
 app.use("/api/monsters", monsterRoutes);
 app.use("/api/player", playerRoutes);
+app.use("/api/dungeon", dungeonRoutes);
 app.use("/api/world", worldRoutes);
 app.use("/api/spawn-points", spawnPointRoutes);
 

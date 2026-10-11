@@ -200,6 +200,86 @@ this.zoneManager?.addMonsterToZone(monsterId, zoneId);
     return monster;
   }
 
+  // SPAWN DUNGEON MONSTER
+  //
+  // Dùng cho procedural dungeon: zone là dynamic nên bỏ qua kiểm tra
+  // spawnZones config, nhưng vẫn giữ giới hạn số lượng và lấy mọi chỉ số
+  // từ template DB (client không được chọn loại/chỉ số quái).
+
+  spawnDungeonMonster({ type, zoneId, x = 0, y = 0 }) {
+    const template = this.templates.get(type);
+
+    if (!template) {
+      console.error(
+        `[MonsterManager] Dungeon template not found: ${type}`
+      );
+
+      return null;
+    }
+
+    // Giới hạn chống spam: tối đa 10 con cùng loại trong 1 zone dungeon
+    const currentCount = this.getZoneMonsterCount(zoneId, type);
+
+    if (currentCount >= 10) {
+      return null;
+    }
+
+    const monsterId = crypto.randomUUID();
+
+    const monster = {
+      monsterId,
+
+      type: template.type,
+
+      displayName: template.displayName,
+
+      hp: template.maxHp,
+      maxHp: template.maxHp,
+
+      damage: template.damage,
+
+      speed: template.speed,
+
+      detectRange: template.detectRange,
+
+      attackRange: template.attackRange,
+
+      attackCooldown: template.attackCooldown || 1500,
+
+      expReward: template.expReward,
+
+      dropTable: template.dropTable || [],
+
+      zoneId,
+
+      spawnPointId: null,
+
+      position: {
+        x,
+        y,
+      },
+
+      alive: true,
+
+      targetPlayerId: null,
+
+      lastAttackTime: 0,
+
+      spawnedAt: Date.now(),
+
+      respawnTime: 0, // quái dungeon không tự respawn
+    };
+
+    this.monsters.set(monsterId, monster);
+
+    this.incrementZoneCount(zoneId, type);
+
+    this.zoneManager?.addMonsterToZone(monsterId, zoneId);
+    this.broadcastMonsterSpawn(monster);
+
+    return monster;
+  }
+
   getSpawnPointMonsterCount(spawnPointId) {
     let count = 0;
     for (const m of this.monsters.values()) {
