@@ -7,7 +7,7 @@ const DUNGEON_TIERS = {
   1: {
     name: "Hầm Ngục Tầng 1",
     maxMonsters: 12,   // số điểm spawn tối đa client được gửi
-    bounds: 64,        // |x|,|y| tối đa (khớp map 64x64 của client)
+    bounds: 128,       // |x|,|y| tối đa (nới từ 64 để hỗ trợ map lớn hơn)
     minSpacing: 2,     // khoảng cách tối thiểu giữa các điểm spawn
     pool: [
       { type: "slime", weight: 70 },
@@ -17,7 +17,7 @@ const DUNGEON_TIERS = {
   2: {
     name: "Hầm Ngục Tầng 2",
     maxMonsters: 16,
-    bounds: 64,
+    bounds: 128,       // |x|,|y| tối đa (nới từ 64 để hỗ trợ map lớn hơn)
     minSpacing: 2,
     pool: [
       { type: "slime", weight: 40 },
@@ -28,7 +28,7 @@ const DUNGEON_TIERS = {
   3: {
     name: "Hầm Ngục Tầng 3",
     maxMonsters: 20,
-    bounds: 64,
+    bounds: 128,       // |x|,|y| tối đa (nới từ 64 để hỗ trợ map lớn hơn)
     minSpacing: 2,
     pool: [
       { type: "goblin", weight: 40 },
