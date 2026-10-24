@@ -19,7 +19,9 @@ const spawnPointRoutes = require("./routes/spawnRoutes");
 /*
 | Managers
 */
-
+const DayNightCycle = require("./game/DayNightCycle");
+const { FarmManager } = require("./game/FarmManager");
+const { ScoreManager } = require("./game/ScoreManager");
 const PlayerManager = require("./game/PlayerManager");
 const ZoneManager = require("./game/ZoneManager");
 const MonsterManager = require("./game/MonsterManager");
@@ -28,7 +30,10 @@ const CombatManager = require("./game/CombatManager");
 const LootManager = require("./game/LootManager");
 const SocketManager = require("./game/SocketManager");
 const SpawnManager = require("./game/SpawnManager");
-
+const { TunnelManager } = require("./game/TunnelManager");
+const { PKManager } = require("./game/PKManager");
+const { StealManager } = require("./game/StealManager");
+const FarmMapGenerator = require('./game/FarmMapGenerator');
 
 const { setWorldManager } = require("./controllers/worldController");
 const { setSpawnManager } = require("./controllers/spawnController");
@@ -66,11 +71,25 @@ const monsterManager = new MonsterManager({ io, zoneManager, lootManager, player
 const combatManager = new CombatManager({ playerManager, monsterManager});
 const spawnManager = new SpawnManager({ monsterManager, zoneManager });
 const worldManager = new WorldManager();
+const dayNightCycle = new DayNightCycle({ io });
+const scoreManager = new ScoreManager({ io, dayNightCycle });
+const farmManager = new FarmManager({ io, scoreManager });
+const tunnelManager = new TunnelManager({ io, playerManager });
+const pkManager = new PKManager({ io, playerManager, dayNightCycle, scoreManager });
+const stealManager = new StealManager({ io, playerManager, dayNightCycle, scoreManager, pkManager, tunnelManager });
+const farmMapGen = new FarmMapGenerator(128, 128);
 
+dayNightCycle.start();
+farmManager.start();
 /*
 | Init Socket
 */
 
+tunnelManager.registerTunnel("player1_id",
+  { x: 10, y: 5, scene: "house1" }, { x: 0, y: 0, scene: "dungeon" });
+tunnelManager.registerTunnel("player2_id",
+  { x: -10, y: 5, scene: "house2" }, { x: 20, y: 0, scene: "dungeon" });
+  
 const socketManager = new SocketManager(io, {
   playerManager,
   zoneManager,

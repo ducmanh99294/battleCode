@@ -109,7 +109,13 @@ constructor(io, {
         // Stats/equipment/talent của runtime player PHẢI lấy từ DB,
         // không tin bất kỳ số nào client gửi lên (chống hack chỉ số).
         await this.playerManager.resolveEquipmentStats(playerId);
-
+        
+        this.farmManager.registerSocketHandlers(socket);
+        this.scoreManager.registerSocketHandlers(socket);
+        this.tunnelManager.registerSocketHandlers(socket);
+        this.pkManager.registerSocketHandlers(socket);
+        this.stealManager.registerSocketHandlers(socket);
+                
         this.zoneManager.addPlayerToZone(playerId, zone.zoneId);
         socket.join(zone.zoneId);
 
